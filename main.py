@@ -36,7 +36,6 @@ kp_gamma = initialize_keypair()
 seed_rho = kp_rho.seed().decode()
 seed_gamma = kp_gamma.seed().decode()
 
-
 print('Initializing transactions')
 address_rho = Address(address=kp_rho.address().decode())
 address_gamma = Address(address=kp_gamma.address().decode())
@@ -54,11 +53,13 @@ timebound_controtransazione = TimeBounds(minTime=0, maxTime=T_unix)
 builder_rho_1 = Builder(secret=seed_rho, sequence=starting_sequence_rho+1)
 builder_rho_1.append_payment_op(kp_bob.address().decode(), '1', 'XLM')
 builder_rho_1.add_time_bounds(timebound_controtransazione)
+tx_rho_1 = builder_rho_1.gen_tx()
 hash_rho_1 = builder_rho_1.gen_te().hash_meta()
 
 builder_rho_2 = Builder(secret=seed_rho, sequence=starting_sequence_rho+1)
 builder_rho_2.append_payment_op(kp_alice.address().decode(), '100', 'XLM')
 builder_rho_2.add_time_bounds(timebound_transazione)
+tx_rho_2 = builder_rho_2.gen_tx()
 hash_rho_2 = builder_rho_2.gen_te().hash_meta()
 
 builder_gamma_1 = Builder(secret=seed_gamma, sequence=starting_sequence_gamma+1)
@@ -70,7 +71,7 @@ hash_gamma_1 = builder_gamma_1.gen_te().hash_meta()
 builder_gamma_2 = Builder(secret=seed_gamma, sequence=starting_sequence_gamma+1)
 builder_gamma_2.append_payment_op(kp_bob.address().decode(), '100', 'XLM')
 builder_gamma_2.add_time_bounds(timebound_transazione)
-
+tx_gamma_2 = builder_gamma_2.gen_tx()
 hash_gamma_2 = builder_gamma_2.gen_te().hash_meta()
 
 builder_rho_0 = Builder(secret=seed_rho)
@@ -101,10 +102,6 @@ print('Submitting gamma_0')
 response = builder_gamma_0.submit()
 assert 'hash' in response
 
-tx_rho_1 = builder_rho_1.gen_tx()
-tx_rho_2 = builder_rho_2.gen_tx()
-tx_gamma_2 = builder_gamma_2.gen_tx()
-
 print('At this point Carol cannot remove funds from rho/gamma')
 builder = Builder(secret=seed_rho)
 builder.append_payment_op(kp_carol.address().decode(), 1000)
@@ -117,7 +114,6 @@ print(f'[deadline: { T }; current time: { datetime.datetime.now() }]')
 envelope = Te(tx_rho_2, opts={})
 response = horizon.submit(envelope.xdr())
 assert 'hash' not in response
-
 
 print('Bob leaks his secret, so Alice can submit tx_gamma_1')
 envelope = Te(tx_gamma_1, opts={})
