@@ -1,7 +1,6 @@
 from stellar_base.keypair import Keypair
 from stellar_base.address import Address
 from stellar_base.builder import Builder
-from stellar_base.operation import CreateAccount
 from stellar_base.transaction_envelope import TransactionEnvelope as Te
 from stellar_base.stellarxdr.StellarXDR_type import TimeBounds
 from stellar_base.horizon import horizon_testnet
