@@ -8,7 +8,7 @@ numpy==1.14.3
 pbkdf2==1.3
 pkg-resources==0.0.0
 requests==2.18.4
--e git+git@github.com:blockstack/secret-sharing.git@d898dbaf2f85806fc8f73c57b17ef07d581e956e#egg=secretsharing
+-e git+https://github.com/blockstack/secret-sharing.git@d898dbaf2f85806fc8f73c57b17ef07d581e956e#egg=secretsharing
 six==1.11.0
 sseclient==0.0.19
 stellar-base==0.1.8.1
