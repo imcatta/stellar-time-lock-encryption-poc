@@ -1,6 +1,7 @@
 from stellar_base.keypair import Keypair
 from stellar_base.address import Address
 from stellar_base.builder import Builder
+from stellar_base.operation import CreateAccount
 from stellar_base.transaction_envelope import TransactionEnvelope as Te
 from stellar_base.stellarxdr.StellarXDR_type import TimeBounds
 from stellar_base.horizon import horizon_testnet
@@ -31,10 +32,21 @@ print('Initializing keypairs')
 kp_alice = initialize_keypair()
 kp_bob = initialize_keypair()
 kp_carol = initialize_keypair()
-kp_rho = initialize_keypair()
-kp_gamma = initialize_keypair()
-seed_rho = kp_rho.seed().decode()
-seed_gamma = kp_gamma.seed().decode()
+
+print('Carol creates rho and gamma')
+kp_rho = initialize_keypair(add_funds=False)
+builder_rho = Builder(secret=kp_carol.seed().decode())
+builder_rho.append_create_account_op(kp_rho.address().decode(), '110')
+builder_rho.sign()
+response = builder_rho.submit()
+assert 'hash' in response
+
+kp_gamma = initialize_keypair(add_funds=False)
+builder_gamma = Builder(secret=kp_carol.seed().decode())
+builder_gamma.append_create_account_op(kp_gamma.address().decode(), '110')
+builder_gamma.sign()
+response = builder_gamma.submit()
+assert 'hash' in response
 
 print('Initializing transactions')
 address_rho = Address(address=kp_rho.address().decode())
@@ -50,31 +62,31 @@ T_unix = int(time.mktime(T.timetuple()))
 timebound_transazione = TimeBounds(minTime=T_unix, maxTime=0)
 timebound_controtransazione = TimeBounds(minTime=0, maxTime=T_unix)
 
-builder_rho_1 = Builder(secret=seed_rho, sequence=starting_sequence_rho+1)
+builder_rho_1 = Builder(secret=kp_rho.seed().decode(), sequence=starting_sequence_rho+1)
 builder_rho_1.append_payment_op(kp_bob.address().decode(), '1', 'XLM')
 builder_rho_1.add_time_bounds(timebound_controtransazione)
 tx_rho_1 = builder_rho_1.gen_tx()
 hash_rho_1 = builder_rho_1.gen_te().hash_meta()
 
-builder_rho_2 = Builder(secret=seed_rho, sequence=starting_sequence_rho+1)
+builder_rho_2 = Builder(secret=kp_rho.seed().decode(), sequence=starting_sequence_rho+1)
 builder_rho_2.append_payment_op(kp_alice.address().decode(), '100', 'XLM')
 builder_rho_2.add_time_bounds(timebound_transazione)
 tx_rho_2 = builder_rho_2.gen_tx()
 hash_rho_2 = builder_rho_2.gen_te().hash_meta()
 
-builder_gamma_1 = Builder(secret=seed_gamma, sequence=starting_sequence_gamma+1)
+builder_gamma_1 = Builder(secret=kp_gamma.seed().decode(), sequence=starting_sequence_gamma+1)
 builder_gamma_1.append_payment_op(kp_alice.address().decode(), '1', 'XLM')
 builder_gamma_1.add_time_bounds(timebound_controtransazione)
 tx_gamma_1 = builder_gamma_1.gen_tx()
 hash_gamma_1 = builder_gamma_1.gen_te().hash_meta()
 
-builder_gamma_2 = Builder(secret=seed_gamma, sequence=starting_sequence_gamma+1)
+builder_gamma_2 = Builder(secret=kp_gamma.seed().decode(), sequence=starting_sequence_gamma+1)
 builder_gamma_2.append_payment_op(kp_bob.address().decode(), '100', 'XLM')
 builder_gamma_2.add_time_bounds(timebound_transazione)
 tx_gamma_2 = builder_gamma_2.gen_tx()
 hash_gamma_2 = builder_gamma_2.gen_te().hash_meta()
 
-builder_rho_0 = Builder(secret=seed_rho)
+builder_rho_0 = Builder(secret=kp_rho.seed().decode())
 builder_rho_0.append_set_options_op(master_weight=255)
 builder_rho_0.append_set_options_op(med_threshold=2)
 builder_rho_0.append_set_options_op(high_threshold=254)
@@ -84,7 +96,7 @@ builder_rho_0.append_hashx_signer(hash_x1, 1)
 builder_rho_0.append_set_options_op(master_weight=0)
 builder_rho_0.sign()
 
-builder_gamma_0 = Builder(secret=seed_gamma)
+builder_gamma_0 = Builder(secret=kp_gamma.seed().decode())
 builder_gamma_0.append_set_options_op(master_weight=255)
 builder_gamma_0.append_set_options_op(med_threshold=2)
 builder_gamma_0.append_set_options_op(high_threshold=254)
@@ -103,7 +115,7 @@ response = builder_gamma_0.submit()
 assert 'hash' in response
 
 print('At this point Carol cannot remove funds from rho/gamma')
-builder = Builder(secret=seed_rho)
+builder = Builder(secret=kp_rho.seed().decode())
 builder.append_payment_op(kp_carol.address().decode(), 1000)
 builder.sign()
 response = builder.submit()
