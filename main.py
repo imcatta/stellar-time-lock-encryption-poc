@@ -34,17 +34,12 @@ kp_carol = initialize_keypair()
 
 print('Carol creates rho and gamma')
 kp_rho = initialize_keypair(add_funds=False)
-builder_rho = Builder(secret=kp_carol.seed().decode())
-builder_rho.append_create_account_op(kp_rho.address().decode(), '110')
-builder_rho.sign()
-response = builder_rho.submit()
-assert 'hash' in response
-
 kp_gamma = initialize_keypair(add_funds=False)
-builder_gamma = Builder(secret=kp_carol.seed().decode())
-builder_gamma.append_create_account_op(kp_gamma.address().decode(), '110')
-builder_gamma.sign()
-response = builder_gamma.submit()
+builder_rho_gamma = Builder(secret=kp_carol.seed().decode())
+builder_rho_gamma.append_create_account_op(kp_rho.address().decode(), '110')
+builder_rho_gamma.append_create_account_op(kp_gamma.address().decode(), '110')
+builder_rho_gamma.sign()
+response = builder_rho_gamma.submit()
 assert 'hash' in response
 
 print('Initializing transactions')
