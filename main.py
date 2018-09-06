@@ -16,11 +16,16 @@ def initialize_keypair(add_funds=True):
     kp = Keypair.random()
     if add_funds:
         publickey = kp.address().decode()
-        requests.get('https://friendbot.stellar.org/?addr=' + publickey)
+        url = 'https://friendbot.stellar.org/?addr=' + publickey
+        requests.get(url)
     return kp
 
 
-x = 'Hello, World!'
+PRIZE = '100'
+PAWN = '100'
+COUNTERPRIZE = '1'
+
+x = 'Hello, World!'  # Carol's message
 x1, x2 = PlaintextToHexSecretSharer.split_secret(x, 2, 2)
 
 hash_x1 = hashlib.sha256(x1.encode()).digest()
@@ -35,16 +40,20 @@ kp_carol = initialize_keypair()
 print('Carol creates rho and gamma')
 kp_rho = initialize_keypair(add_funds=False)
 kp_gamma = initialize_keypair(add_funds=False)
+kp_rho_address = kp_rho.address().decode()
+kp_gamma_address = kp_gamma.address().decode()
+kp_rho_seed = kp_rho.seed().decode()
+kp_gamma_seed = kp_gamma.seed().decode()
 builder_rho_gamma = Builder(secret=kp_carol.seed().decode())
-builder_rho_gamma.append_create_account_op(kp_rho.address().decode(), '202.50009')
-builder_rho_gamma.append_create_account_op(kp_gamma.address().decode(), '202.50009')
+builder_rho_gamma.append_create_account_op(kp_rho_address, '202.50009')
+builder_rho_gamma.append_create_account_op(kp_gamma_address, '202.50009')
 builder_rho_gamma.sign()
 response = builder_rho_gamma.submit()
 assert 'hash' in response
 
 print('Initializing transactions')
-address_rho = Address(address=kp_rho.address().decode())
-address_gamma = Address(address=kp_gamma.address().decode())
+address_rho = Address(address=kp_rho_address)
+address_gamma = Address(address=kp_gamma_address)
 address_rho.get()
 address_gamma.get()
 
@@ -56,33 +65,38 @@ T_unix = int(time.mktime(T.timetuple()))
 timebound_transazione = TimeBounds(minTime=T_unix, maxTime=0)
 timebound_controtransazione = TimeBounds(minTime=0, maxTime=T_unix)
 
-builder_rho_1 = Builder(secret=kp_rho.seed().decode(), sequence=starting_sequence_rho+1)
-builder_rho_1.append_payment_op(kp_bob.address().decode(), '1', 'XLM')
+builder_rho_1 = Builder(secret=kp_rho_seed,
+                        sequence=starting_sequence_rho+1)
+builder_rho_1.append_payment_op(kp_bob.address().decode(), COUNTERPRIZE, 'XLM')
 builder_rho_1.add_time_bounds(timebound_controtransazione)
 tx_rho_1 = builder_rho_1.gen_tx()
 hash_rho_1 = builder_rho_1.gen_te().hash_meta()
 
-builder_rho_2 = Builder(secret=kp_rho.seed().decode(), sequence=starting_sequence_rho+1)
-builder_rho_2.append_payment_op(kp_alice.address().decode(), '100', 'XLM')
-builder_rho_2.append_payment_op(kp_carol.address().decode(), '100', 'XLM')
+builder_rho_2 = Builder(secret=kp_rho_seed,
+                        sequence=starting_sequence_rho+1)
+builder_rho_2.append_payment_op(kp_alice.address().decode(), PRIZE, 'XLM')
+builder_rho_2.append_payment_op(kp_carol.address().decode(), PAWN, 'XLM')
 builder_rho_2.add_time_bounds(timebound_transazione)
 tx_rho_2 = builder_rho_2.gen_tx()
 hash_rho_2 = builder_rho_2.gen_te().hash_meta()
 
-builder_gamma_1 = Builder(secret=kp_gamma.seed().decode(), sequence=starting_sequence_gamma+1)
-builder_gamma_1.append_payment_op(kp_alice.address().decode(), '1', 'XLM')
+builder_gamma_1 = Builder(secret=kp_gamma_seed,
+                          sequence=starting_sequence_gamma+1)
+builder_gamma_1.append_payment_op(
+    kp_alice.address().decode(), COUNTERPRIZE, 'XLM')
 builder_gamma_1.add_time_bounds(timebound_controtransazione)
 tx_gamma_1 = builder_gamma_1.gen_tx()
 hash_gamma_1 = builder_gamma_1.gen_te().hash_meta()
 
-builder_gamma_2 = Builder(secret=kp_gamma.seed().decode(), sequence=starting_sequence_gamma+1)
-builder_gamma_2.append_payment_op(kp_bob.address().decode(), '100', 'XLM')
-builder_gamma_2.append_payment_op(kp_carol.address().decode(), '100', 'XLM')
+builder_gamma_2 = Builder(secret=kp_gamma_seed,
+                          sequence=starting_sequence_gamma+1)
+builder_gamma_2.append_payment_op(kp_bob.address().decode(), PRIZE, 'XLM')
+builder_gamma_2.append_payment_op(kp_carol.address().decode(), PAWN, 'XLM')
 builder_gamma_2.add_time_bounds(timebound_transazione)
 tx_gamma_2 = builder_gamma_2.gen_tx()
 hash_gamma_2 = builder_gamma_2.gen_te().hash_meta()
 
-builder_rho_0 = Builder(secret=kp_rho.seed().decode())
+builder_rho_0 = Builder(secret=kp_rho_seed)
 builder_rho_0.append_set_options_op(master_weight=255)
 builder_rho_0.append_set_options_op(med_threshold=2)
 builder_rho_0.append_set_options_op(high_threshold=254)
@@ -92,7 +106,7 @@ builder_rho_0.append_hashx_signer(hash_x1, 1)
 builder_rho_0.append_set_options_op(master_weight=0)
 builder_rho_0.sign()
 
-builder_gamma_0 = Builder(secret=kp_gamma.seed().decode())
+builder_gamma_0 = Builder(secret=kp_gamma_seed)
 builder_gamma_0.append_set_options_op(master_weight=255)
 builder_gamma_0.append_set_options_op(med_threshold=2)
 builder_gamma_0.append_set_options_op(high_threshold=254)
@@ -111,7 +125,7 @@ response = builder_gamma_0.submit()
 assert 'hash' in response
 
 print('At this point Carol cannot remove funds from rho/gamma')
-builder = Builder(secret=kp_rho.seed().decode())
+builder = Builder(secret=kp_rho_seed)
 builder.append_payment_op(kp_carol.address().decode(), 1000)
 builder.sign()
 response = builder.submit()
@@ -132,7 +146,7 @@ assert 'hash' in response
 print('Waiting for the deadline')
 tts = (T - datetime.datetime.now()).total_seconds()
 time.sleep(tts)
-time.sleep(5) # some margin
+time.sleep(5)  # some margin
 
 print('Now Alice can submit tx_rho_2')
 envelope = Te(tx_rho_2, opts={})
@@ -147,8 +161,12 @@ response = horizon.submit(envelope.xdr())
 assert 'hash' not in response
 
 print('At this point, the secret is public')
-last_tx_rho = horizon.account_transactions(kp_rho.address().decode(), params={'limit': 1, 'order': 'desc'})
-last_tx_gamma = horizon.account_transactions(kp_gamma.address().decode(), params={'limit': 1, 'order': 'desc'})
-x_rho = base64.b64decode(last_tx_rho['_embedded']['records'][0]['signatures'][0]).decode()
-x_gamma = base64.b64decode(last_tx_gamma['_embedded']['records'][0]['signatures'][0]).decode()
+last_tx_rho = horizon.account_transactions(
+    kp_rho_address, params={'limit': 1, 'order': 'desc'})
+last_tx_gamma = horizon.account_transactions(
+    kp_gamma_address, params={'limit': 1, 'order': 'desc'})
+x_rho = base64.b64decode(
+    last_tx_rho['_embedded']['records'][0]['signatures'][0]).decode()
+x_gamma = base64.b64decode(
+    last_tx_gamma['_embedded']['records'][0]['signatures'][0]).decode()
 assert PlaintextToHexSecretSharer.recover_secret([x_rho, x_gamma]) == x
