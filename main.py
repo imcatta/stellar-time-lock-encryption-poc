@@ -130,7 +130,7 @@ assert 'hash' in response
 
 print('At this point Carol cannot remove funds from rho/gamma')
 builder = Builder(secret=kp_rho_seed)
-builder.append_payment_op(kp_carol.address().decode(), 1000)
+builder.append_payment_op(kp_carol.address().decode(), 1)
 builder.sign()
 response = builder.submit()
 assert 'hash' not in response
