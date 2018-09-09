@@ -27,10 +27,10 @@ COUNTERPRIZE = '1'
 DELTA = 60  # seconds
 
 x = 'Hello, World!'  # Carol's message
-x1, x2 = PlaintextToHexSecretSharer.split_secret(x, 2, 2)
+x_a, x_b = PlaintextToHexSecretSharer.split_secret(x, 2, 2)
 
-hash_x1 = hashlib.sha256(x1.encode()).digest()
-hash_x2 = hashlib.sha256(x2.encode()).digest()
+hash_x_a = hashlib.sha256(x_a.encode()).digest()
+hash_x_b = hashlib.sha256(x_b.encode()).digest()
 horizon = horizon_testnet()
 
 print('Initializing keypairs')
@@ -106,7 +106,7 @@ builder_rho_0.append_set_options_op(med_threshold=2)
 builder_rho_0.append_set_options_op(high_threshold=254)
 builder_rho_0.append_pre_auth_tx_signer(hash_rho_1, 1)
 builder_rho_0.append_pre_auth_tx_signer(hash_rho_2, 1)
-builder_rho_0.append_hashx_signer(hash_x1, 1)
+builder_rho_0.append_hashx_signer(hash_x_a, 1)
 builder_rho_0.append_set_options_op(master_weight=0)
 builder_rho_0.sign()
 
@@ -116,7 +116,7 @@ builder_gamma_0.append_set_options_op(med_threshold=2)
 builder_gamma_0.append_set_options_op(high_threshold=254)
 builder_gamma_0.append_pre_auth_tx_signer(hash_gamma_1, 1)
 builder_gamma_0.append_pre_auth_tx_signer(hash_gamma_2, 1)
-builder_gamma_0.append_hashx_signer(hash_x2, 1)
+builder_gamma_0.append_hashx_signer(hash_x_b, 1)
 builder_gamma_0.append_set_options_op(master_weight=0)
 builder_gamma_0.sign()
 
@@ -143,7 +143,7 @@ assert 'hash' not in response
 
 print('Bob leaks his secret, so Alice can submit tx_gamma_1')
 envelope = Te(tx_gamma_1, opts={})
-envelope.sign_hashX(x2)
+envelope.sign_hashX(x_b)
 response = horizon.submit(envelope.xdr())
 assert 'hash' in response
 
@@ -154,13 +154,13 @@ time.sleep(5)  # some margin
 
 print('Now Alice can submit tx_rho_2')
 envelope = Te(tx_rho_2, opts={})
-envelope.sign_hashX(x1)
+envelope.sign_hashX(x_a)
 response = horizon.submit(envelope.xdr())
 assert 'hash' in response
 
 print('Bob cannot submit tx_gamma_2, because he leaked the secret')
 envelope = Te(tx_gamma_2, opts={})
-envelope.sign_hashX(x2)
+envelope.sign_hashX(x_b)
 response = horizon.submit(envelope.xdr())
 assert 'hash' not in response
 
