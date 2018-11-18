@@ -21,8 +21,9 @@ def initialize_keypair(add_funds=True):
     return kp
 
 
-def extract_x_from_tx(tx):
-    return base64.b64decode(tx['_embedded']['records'][0]['signatures'][0]).decode()
+def extract_share_from_tx(tx):
+    return base64.b64decode(
+        tx['_embedded']['records'][0]['signatures'][0]).decode()
 
 
 PRIZE = '100'
@@ -50,8 +51,10 @@ kp_a_2_address = kp_a_2.address().decode()
 kp_a_1_seed = kp_a_1.seed().decode()
 kp_a_2_seed = kp_a_2.seed().decode()
 accounts_builder = Builder(secret=kp_carol.seed().decode())
-accounts_builder.append_create_account_op(kp_a_1_address, '202.50009')
-accounts_builder.append_create_account_op(kp_a_2_address, '202.50009')
+accounts_builder.append_create_account_op(
+    kp_a_1_address, '202.50009')
+accounts_builder.append_create_account_op(
+    kp_a_2_address, '202.50009')
 accounts_builder.sign()
 response = accounts_builder.submit()
 assert 'hash' in response
@@ -75,23 +78,28 @@ counter_tx_timebound = TimeBounds(minTime=0, maxTime=tau_unix)
 
 builder_t_1_1 = Builder(secret=kp_a_1_seed,
                         sequence=starting_sequence_a_1+1)
-builder_t_1_1.append_payment_op(kp_alice.address().decode(), PRIZE, 'XLM')
-builder_t_1_1.append_payment_op(kp_carol.address().decode(), PAWN, 'XLM')
+builder_t_1_1.append_payment_op(
+    kp_alice.address().decode(), PRIZE, 'XLM')
+builder_t_1_1.append_payment_op(
+    kp_carol.address().decode(), PAWN, 'XLM')
 builder_t_1_1.add_time_bounds(tx_timebound)
 t_1_1 = builder_t_1_1.gen_tx()
 hash_t_1_1 = builder_t_1_1.gen_te().hash_meta()
 
 builder_t_1_2 = Builder(secret=kp_a_1_seed,
                         sequence=starting_sequence_a_1+1)
-builder_t_1_2.append_payment_op(kp_bob.address().decode(), COUNTERPRIZE, 'XLM')
+builder_t_1_2.append_payment_op(
+    kp_bob.address().decode(), COUNTERPRIZE, 'XLM')
 builder_t_1_2.add_time_bounds(counter_tx_timebound)
 t_1_2 = builder_t_1_2.gen_tx()
 hash_t_1_2 = builder_t_1_2.gen_te().hash_meta()
 
 builder_t_2_2 = Builder(secret=kp_a_2_seed,
                         sequence=starting_sequence_a_2+1)
-builder_t_2_2.append_payment_op(kp_bob.address().decode(), PRIZE, 'XLM')
-builder_t_2_2.append_payment_op(kp_carol.address().decode(), PAWN, 'XLM')
+builder_t_2_2.append_payment_op(
+    kp_bob.address().decode(), PRIZE, 'XLM')
+builder_t_2_2.append_payment_op(
+    kp_carol.address().decode(), PAWN, 'XLM')
 builder_t_2_2.add_time_bounds(tx_timebound)
 t_2_2 = builder_t_2_2.gen_tx()
 hash_t_2_2 = builder_t_2_2.gen_te().hash_meta()
@@ -139,8 +147,9 @@ builder.sign()
 response = builder.submit()
 assert 'hash' not in response
 
+now = datetime.datetime.now()
 print('Alice tries to submit t_1_1 before the deadline, but fails')
-print(f'[deadline: { tau }; current time: { datetime.datetime.now() }]')
+print(f'[deadline: { tau }; current time: { now }]')
 envelope = Te(t_1_1, opts={})
 response = horizon.submit(envelope.xdr())
 assert 'hash' not in response
@@ -170,8 +179,11 @@ assert 'hash' not in response
 
 print('At this point, the secret is public')
 params = {'limit': 1, 'order': 'desc'}
-last_tx_a_1 = horizon.account_transactions(kp_a_1_address, params=params)
-last_tx_a_2 = horizon.account_transactions(kp_a_2_address, params=params)
-x_a_1 = extract_x_from_tx(last_tx_a_1)
-x_a_2 = extract_x_from_tx(last_tx_a_2)
-assert PlaintextToHexSecretSharer.recover_secret([x_a_1, x_a_2]) == x
+last_tx_a_1 = horizon.account_transactions(
+    kp_a_1_address, params=params)
+last_tx_a_2 = horizon.account_transactions(
+    kp_a_2_address, params=params)
+x_a_1 = extract_share_from_tx(last_tx_a_1)
+x_a_2 = extract_share_from_tx(last_tx_a_2)
+secret = PlaintextToHexSecretSharer.recover_secret([x_a_1, x_a_2])
+assert secret == x
