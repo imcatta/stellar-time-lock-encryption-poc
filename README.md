@@ -6,7 +6,7 @@ built on top of the [Stellar](https://www.stellar.org/) blockchain.
 ## Getting Started
 Make sure to use Python 3.6+.
 
-### Install dependecies
+### Install dependencies
 ```
 pip install -r requirements.txt
 ```
